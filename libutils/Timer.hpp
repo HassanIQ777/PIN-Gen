@@ -1,0 +1,96 @@
+/* Part of https://github.com/HassanIQ777/libutils
+Made on    : 2024 Nov 20
+Last update: 2025 Sep 20 */
+
+#ifndef TIMER_HPP
+#define TIMER_HPP
+
+#include <chrono>
+#include <functional>
+#include <string>
+
+class Timer // i think this is pretty clear so it doesn't need documentation lol
+{
+  private:
+	std::chrono::time_point<std::chrono::high_resolution_clock> p_start_time;
+	double p_total_elapsed = 0.0; // keeps total elapsed time
+	bool p_running = false;		  // whether timer is running
+
+  public:
+	Timer() { p_start(); }
+	Timer(const double &start_time) : p_total_elapsed(start_time) { p_start(); }
+
+	void pause()
+	{
+		if (p_running)
+		{
+			auto now = std::chrono::high_resolution_clock::now();
+			p_total_elapsed += std::chrono::duration<double>(now - p_start_time).count();
+			p_running = false;
+		}
+	}
+
+	void resume() { p_start(); }
+
+	double elapsed() const
+	{
+		if (p_running)
+		{
+			auto now = std::chrono::high_resolution_clock::now();
+			return p_total_elapsed + std::chrono::duration<double>(now - p_start_time).count();
+		}
+		return p_total_elapsed;
+	}
+
+	void reset()
+	{
+		p_total_elapsed = 0.0;
+		p_running = false;
+	}
+
+	void restart()
+	{
+		p_total_elapsed = 0.0;
+		// keep running
+		p_running = true;
+		p_start_time = std::chrono::high_resolution_clock::now();
+	}
+
+  private:
+	void p_start()
+	{
+		if (!p_running)
+		{
+			p_running = true;
+			p_start_time = std::chrono::high_resolution_clock::now();
+		}
+	}
+};
+
+class ScopedTimer
+{
+  public:
+	using Callback = std::function<void(double)>;
+
+	ScopedTimer(const std::string &name, Callback callback)
+		: p_name(name), p_callback(std::move(callback)),
+		  p_start_time(std::chrono::high_resolution_clock::now()) {}
+
+	~ScopedTimer()
+	{
+		if (p_callback)
+		{
+			auto now = std::chrono::high_resolution_clock::now();
+			double total_elapsed = std::chrono::duration<double>(now - p_start_time).count();
+
+			p_callback(total_elapsed);
+		}
+	}
+
+  private:
+	std::string p_name;
+	Callback p_callback;
+	std::chrono::time_point<std::chrono::high_resolution_clock> p_start_time;
+};
+
+#endif // timer.hpp

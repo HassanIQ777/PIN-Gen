@@ -1,0 +1,122 @@
+/* Part of https://github.com/HassanIQ777/libutils
+Made on:     2025 May 08
+Last update: 2026 Aug 18 */
+
+#ifndef RANDOM_HPP
+#define RANDOM_HPP
+
+#include <algorithm> // for std::shuffle
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <random>
+#include <string>
+#include <vector>
+
+namespace Random {
+
+/* PUBLIC members */
+inline std::mt19937_64 &p_getEngine() {
+  static std::mt19937_64 engine(static_cast<size_t>(
+      std::chrono::steady_clock::now().time_since_epoch().count()));
+  return engine;
+}
+
+// generates a random int value on the interval [min, max]
+inline uint64_t integer(uint64_t min, uint64_t max) {
+  std::uniform_int_distribution<uint64_t> dist(min, max);
+  return dist(p_getEngine());
+}
+
+// generates a random floating point value on the interval [min, max]
+template <typename T>
+inline T real(T min, T max) {
+  static_assert(std::is_floating_point_v<T>, "Random::real requires a floating-point type");
+  std::uniform_real_distribution<T> dist(min, std::nextafter(max, std::numeric_limits<T>::max()));
+  return dist(p_getEngine());
+}
+
+// generates a random boolean value
+inline bool boolean() {
+  std::bernoulli_distribution dist(0.5); // 50/50 chance
+  return dist(p_getEngine());
+}
+
+// generates a boolean based off probability
+// probability is from 0.0 to 1.0
+inline bool chance(double probability) {
+  std::bernoulli_distribution dist(
+      probability);
+  return dist(p_getEngine());
+}
+
+inline double normalDistribution(double mean, double stddev) {
+  std::normal_distribution<double> dist(mean, stddev);
+  return dist(p_getEngine());
+}
+
+template <typename T> inline void shuffle(std::vector<T> &vec) {
+  std::shuffle(vec.begin(), vec.end(), p_getEngine());
+}
+
+inline void shuffle(std::string &word) {
+  std::shuffle(word.begin(), word.end(), p_getEngine());
+}
+
+template <typename T> inline T getFrom(const std::vector<T> &vec) {
+  if (vec.empty())
+    return {};
+  std::uniform_int_distribution<size_t> dist(0, vec.size() - 1);
+  return vec[dist(p_getEngine())];
+}
+
+inline char getFrom(const std::string &word) {
+  if (word.empty())
+    return '\0';
+  if (word.size() == 1)
+    return word[0];
+
+  return word[integer(0, word.size() - 1)];
+}
+
+inline void seed(uint64_t seed) {
+  if (seed == 0)
+    seed = static_cast<size_t>(
+        std::chrono::steady_clock::now().time_since_epoch().count());
+  p_getEngine().seed(seed);
+}
+
+inline std::string generateUUID(bool add_hyphen) {
+  const std::string charset = "0123456789abcdef";
+  std::string uuid;
+  constexpr int group_sizes[5] = {8, 4, 4, 4, 12};
+
+  for (int i = 0; i < 5; ++i) {
+    for (int j = 0; j < group_sizes[i]; ++j) {
+      uuid += getFrom(charset);
+    }
+    if (i != 4 && add_hyphen) {
+      uuid += "-";
+    }
+  }
+  return uuid;
+}
+
+} // namespace Random
+
+#endif // random.hpp
+
+/* Might add these functions in the future:
+
+        Vector2 randomDirection2D();
+
+        float bias(float min, float max, float power = 2.0f)
+
+        bool skewedBool(double skew = 0.8)
+
+        T weightedChoice(const std::vector<T>& items, const std::vector<double>&
+   weights)
+
+        int randomSign()
+*/
