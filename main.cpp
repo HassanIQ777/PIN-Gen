@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
 
   spinner_generating.stop();
 
-  Loadingbar::StatusLine statusline_writing{1};
+  Loadingbar::StatusLine statusline_writing{5};
   auto createMsg = [](size_t current, const std::string &total) -> std::string {
     return "Writing " + std::to_string(current) + "/" + total;
   };
@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
   std::string total = std::to_string(final.size());
   statusline_writing.setMsg(createMsg(current, total));
 
-  std::string filename = "wordlist_" + numutils::human(round(final.size())) + ".txt";
+  std::string filename = "wordlist_" + numutils::human(final.size()) + ".txt";
   fs::path outfile = fs::path("out") / filename;
 
   std::ofstream file(outfile, std::ios::binary);
