@@ -253,7 +253,7 @@ inline std::string currentTime() {
   const std::tm tm = *std::localtime(&time);
 
   std::ostringstream oss;
-  oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+  oss << std::put_time(&tm, "%Y%m%d_%H%M%S");
   return oss.str();
 }
 
