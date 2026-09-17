@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
         final.push_back(std::move(s));
         first_pass++;
         statusline_generating.setMsg("Generating: " +
-                                     std::to_string(first_pass));
+                                     numutils::groupDigits(first_pass));
       }
   };
 
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
   addAll(calendarDates(yearFrom, yearTo));
   addAll(bruteRule());
 
-  std::cout << "\rGenerating: " + std::to_string(first_pass) << std::endl;
+  std::cout << "\rGenerated: " + numutils::groupDigits(first_pass) << std::endl;
   statusline_generating.stop();
 
   Loadingbar::StatusLine statusline_writing{5};
