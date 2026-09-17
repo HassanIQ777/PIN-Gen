@@ -1,5 +1,6 @@
 #include "libutils/LoadingBar.hpp"
 #include "libutils/funcs.hpp"
+#include "libutils/numutils.hpp"
 #include <charconv>
 #include <chrono>
 #include <cstdint>
@@ -139,8 +140,6 @@ std::vector<std::string> bruteRule() {
 }
 
 int main(int argc, char **argv) {
-  std::string filename = "wordlist_" + funcs::currentTime() + ".txt";
-  fs::path outfile = fs::path("out") / filename;
   // auto lines = File::numlines(outfile);
   //	std::cout << lines << " passwords found.\n";
   //	return 0;
@@ -153,7 +152,8 @@ int main(int argc, char **argv) {
 
   Loadingbar::Spinner spinner_generating{
       {"▁", "▂", "▃", "▄", "▅", "▆", "▇", "█", "▇", "▆", "▅", "▄", "▃", "▂"},
-      100};
+      100,
+      "Generating keys"};
   std::unordered_set<std::string> seen;
   std::vector<std::string> final;
   final.reserve(200000);
@@ -164,40 +164,41 @@ int main(int argc, char **argv) {
         final.push_back(std::move(s));
   };
 
-  //   addAll(repeatedAndSequential()); // highest-probability
-  //   addAll(twinHalves());            // <-- new
-  //   addAll(calendarDates(yearFrom, yearTo));
+  addAll(repeatedAndSequential()); // highest-probability
+  addAll(twinHalves());            // <-- new
+  addAll(calendarDates(yearFrom, yearTo));
   addAll(bruteRule());
-
-  if (fs::exists(outfile)) {
-    std::cout << fs::absolute(outfile) << " already exists, delete it [Y/n]? ";
-    std::string choice;
-    std::getline(std::cin, choice);
-    if (choice != "n") {
-      fs::remove(outfile);
-    }
-  }
 
   spinner_generating.stop();
 
-  Loadingbar::StatusLine statusline_writing{100};
+  Loadingbar::StatusLine statusline_writing{1};
   auto createMsg = [](size_t current, const std::string &total) -> std::string {
-    return std::to_string(current) + "/" + total;
+    return "Writing " + std::to_string(current) + "/" + total;
   };
   size_t current = 0;
   std::string total = std::to_string(final.size());
   statusline_writing.setMsg(createMsg(current, total));
 
-  std::ofstream file(outfile, std::ios::app);
+  std::string filename = "wordlist_" + numutils::human(round(final.size())) + ".txt";
+  fs::path outfile = fs::path("out") / filename;
+
+  std::ofstream file(outfile, std::ios::binary);
+  size_t data_size = 0;
+  for (const auto &l : final)
+    data_size += l.size();
+  std::string buf;
+  buf.reserve(data_size);
 
   for (auto &s : final) {
 
-    // std::puts(s.c_str());
-    file << s << "\n";
     current++;
     statusline_writing.setMsg(createMsg(current, total));
+    buf += s;
+    buf += '\n';
   }
+  file.write(buf.data(), buf.size());
   statusline_writing.stop();
-  std::fprintf(stderr, "\n# total unique candidates: %zu\n", final.size());
-  return 0;
+  std::cout << createMsg(current, total);
+  std::cout << std::endl
+            << "Total: " << numutils::groupDigits(final.size()) << "\n";
 }
