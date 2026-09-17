@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -150,18 +151,20 @@ int main(int argc, char **argv) {
     yearTo = std::atoi(argv[2]);
   }
 
-  Loadingbar::Spinner spinner_generating{
-      {"▁", "▂", "▃", "▄", "▅", "▆", "▇", "█", "▇", "▆", "▅", "▄", "▃", "▂"},
-      100,
-      "Generating keys"};
+  Loadingbar::StatusLine statusline_generating{10, "Generating: "};
   std::unordered_set<std::string> seen;
   std::vector<std::string> final;
-  final.reserve(200000);
+  final.reserve(5000000);
+  size_t first_pass = 0;
 
   auto addAll = [&](std::vector<std::string> &&v) {
     for (auto &s : v)
-      if (seen.insert(s).second)
+      if (seen.insert(s).second) {
         final.push_back(std::move(s));
+        first_pass++;
+        statusline_generating.setMsg("Generating: " +
+                                     std::to_string(first_pass));
+      }
   };
 
   addAll(repeatedAndSequential()); // highest-probability
@@ -169,11 +172,13 @@ int main(int argc, char **argv) {
   addAll(calendarDates(yearFrom, yearTo));
   addAll(bruteRule());
 
-  spinner_generating.stop();
+  std::cout << "\rGenerating: " + std::to_string(first_pass) << std::endl;
+  statusline_generating.stop();
 
   Loadingbar::StatusLine statusline_writing{5};
   auto createMsg = [](size_t current, const std::string &total) -> std::string {
-    return "Writing " + std::to_string(current) + "/" + total;
+    auto total_value = std::stoull(total);
+    return "Writing " + std::to_string(current) + "/" + total + " " + numutils::percent(static_cast<float>(current)/total_value,0);
   };
   size_t current = 0;
   std::string total = std::to_string(final.size());
